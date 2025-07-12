@@ -13,7 +13,7 @@ DISCORD_TOKEN=TOKEN
 ### Launch
 
 ```bash
-# Install dependancies
+# Install dependencies
 npm install
 
 # Launch application

@@ -4,7 +4,8 @@
   "description": "\"Get CSed\" Discord application",
   "main": "index.js",
   "scripts": {
-    "launch": "node ."
+    "launch": "node .",
+    "deploy": "node deploy.js"
   },
   "repository": {
     "type": "git",
