@@ -6,8 +6,15 @@
 ### Environment
 
 ```bash
-# .env
-DISCORD_TOKEN=TOKEN
+# env/.env
+    NODE_ENV=dev || prod
+
+# env/.env.dev (or env/.env.prod)
+    # TOKEN
+    DISCORD_TOKEN=TOKEN
+
+    # ID
+    CLIENT_ID=ID
 ```
 
 ### Launch
