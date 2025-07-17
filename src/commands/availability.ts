@@ -10,22 +10,13 @@ import {
   MessageReaction,
   Collection,
   Snowflake,
-  Message,
-  ChannelType,
 } from "discord.js";
 import { Command } from "../models/command.js";
 import { Slot } from "../models/interfaces/slots.js";
 import { AvailabilityContext } from "../models/interfaces/availability-context.js";
 import { formatTime, parseTime } from "../utils/format.js";
+import { EMOJI_LETTER_LIST, EMOJI_LGBT_FLAG } from "../utils/emoji.js";
 
-const EMOJI_LIST = [
-  "🇦", "🇧", "🇨", "🇩", "🇪",
-  "🇫", "🇬", "🇭", "🇮", "🇯",
-  "🇰", "🇱", "🇲", "🇳", "🇴",
-  "🇵", "🇶", "🇷", "🇸", "🇹",
-];
-
-const EMOJI_UNA = "🏳️‍🌈";
 const defaultAvaibilityContext = {
   title: "TBD",
   start: parseTime("19:00"),
@@ -60,15 +51,13 @@ class AvailabilityCommand extends Command {
     // Prepare validation message
     await interaction.deferReply({ ephemeral: true });
 
-    this._context = defaultAvaibilityContext;
-
     // Update context with options
     this._context.title = interaction.options.getString("title", true);
     const start = interaction.options.getString("start");
     if (start !== null) {
       this._context.start = parseTime(start);
     }
-    const end = interaction.options.getString("start");
+    const end = interaction.options.getString("end");
     if (end !== null) {
       this._context.end = parseTime(end);
     }
@@ -84,9 +73,11 @@ class AvailabilityCommand extends Command {
       this._context.message = await channel.send({ embeds: [this._context.embed] });
 
       // Set reacts
-      for (const emoji of this._context.emojis) {
-        await this._context.message.react(emoji);
-      }
+      (async () => {
+        for (const emoji of this._context.emojis) {
+          await this._context.message?.react(emoji);
+        }
+      })()
 
       await this._context.message.startThread({
         name: 'Discussion publique',
@@ -130,18 +121,21 @@ class AvailabilityCommand extends Command {
   }
 
   private _initializeSlotsAndEmojis() {
+    this._context.slots = []
+    this._context.emojis = []
+
     let cursor = new Date(this._context.start);
     let emojiIndex = 0;
-    while (cursor < this._context.end && emojiIndex < EMOJI_LIST.length) {
+    while (cursor < this._context.end && emojiIndex < EMOJI_LETTER_LIST.length) {
       const label = formatTime(cursor);
-      this._context.slots.push({ emoji: EMOJI_LIST[emojiIndex], label: label });
-      this._context.emojis.push(EMOJI_LIST[emojiIndex]);
+      this._context.slots.push({ emoji: EMOJI_LETTER_LIST[emojiIndex], label: label });
+      this._context.emojis.push(EMOJI_LETTER_LIST[emojiIndex]);
       cursor.setMinutes(cursor.getMinutes() + 30);
       emojiIndex++;
     }
 
-    this._context.slots.push({ emoji: EMOJI_UNA, label: "GAY" });
-    this._context.emojis.push(EMOJI_UNA);
+    this._context.slots.push({ emoji: EMOJI_LGBT_FLAG, label: "GAY" });
+    this._context.emojis.push(EMOJI_LGBT_FLAG);
   }
 
 
@@ -159,7 +153,7 @@ class AvailabilityCommand extends Command {
       )
       .setColor(0x00b0f4)
       .setFooter({
-        text: `Créé par ${interaction.user.username}`,
+        text: `Créé par ${interaction.user.displayName}`,
         iconURL: interaction.user.displayAvatarURL(),
       })
       .setTimestamp();
@@ -170,12 +164,12 @@ class AvailabilityCommand extends Command {
     const existing = this._context?.voters.get(emojiKey) || [];
 
     if (isCollect) {
-      if (!existing.includes(user.username)) {
-        existing.push(user.username);
+      if (!existing.includes(user.displayName)) {
+        existing.push(user.displayName);
       }
       this._context?.voters.set(emojiKey, existing);
     } else {
-      const updated = existing.filter(u => u !== user.username);
+      const updated = existing.filter(u => u !== user.displayName);
       this._context?.voters.set(emojiKey, updated);
     }
   }
