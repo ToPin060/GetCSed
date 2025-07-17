@@ -3,71 +3,50 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   PermissionFlagsBits,
-  MessageFlags,
   TextChannel,
   CacheType,
   User,
   MessageReaction,
-  Collection,
-  Snowflake,
 } from "discord.js";
 import { Command } from "../models/command.js";
 import { Slot } from "../models/interfaces/slots.js";
-import { AvailabilityContext } from "../models/interfaces/availability-context.js";
-import { formatTime, parseTime } from "../utils/format.js";
-import { EMOJI_LETTER_LIST, EMOJI_LGBT_FLAG } from "../utils/emoji.js";
+import { AvailabilityContext } from "../models/availability-context.js";
+import { formatTime } from "../utils/format.js";
+import { EMOJI_BOMB, EMOJI_LGBT_FLAG, EMOJI_ROULETTE } from "../utils/emoji.js";
 
-const defaultAvaibilityContext = {
-  title: "TBD",
-  start: parseTime("19:00"),
-  end: parseTime("22:30"),
-  slots: [],
-  emojis: [],
-  voters: new Collection<string, Snowflake[]>()
-}
+/**
+ * Command description
+ */
+const data = (new SlashCommandBuilder()
+  .setName("availability")
+  .setDescription("Create a time slot poll for availability")
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+  .addStringOption((opt) =>
+    opt.setName("title").setDescription("Title of the poll").setRequired(true)
+  )
+  .addStringOption((opt) =>
+    opt.setName("start").setDescription("Start time (HH:MM)").setRequired(false)
+  )
+  .addStringOption((opt) =>
+    opt.setName("end").setDescription("End time (HH:MM)").setRequired(false)
+  )) as SlashCommandBuilder;
 
 class AvailabilityCommand extends Command {
-  private _context: AvailabilityContext = defaultAvaibilityContext;
+  private _context: AvailabilityContext = new AvailabilityContext();
 
   constructor() {
-    super(
-      new SlashCommandBuilder()
-        .setName("availability")
-        .setDescription("Create a time slot poll for availability")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-        .addStringOption((opt) =>
-          opt.setName("title").setDescription("Title of the poll").setRequired(true)
-        )
-        .addStringOption((opt) =>
-          opt.setName("start").setDescription("Start time (HH:MM)").setRequired(false)
-        )
-        .addStringOption((opt) =>
-          opt.setName("end").setDescription("End time (HH:MM)").setRequired(false)
-        ) as SlashCommandBuilder
-    );
+    super(data);
   }
 
   public override async execute(interaction: ChatInputCommandInteraction<CacheType>): Promise<void> {
-    // Prepare validation message
-    await interaction.deferReply({ ephemeral: true });
-
-    // Update context with options
-    this._context.title = interaction.options.getString("title", true);
-    const start = interaction.options.getString("start");
-    if (start !== null) {
-      this._context.start = parseTime(start);
-    }
-    const end = interaction.options.getString("end");
-    if (end !== null) {
-      this._context.end = parseTime(end);
-    }
-
-    this._initializeSlotsAndEmojis()
-
-    // Create default embed
-    this._context.embed = this._generateDefaultEmbed(interaction);
-
     try {
+      // Prepare Discord interaction reply
+      await interaction.deferReply({ ephemeral: true });
+
+      // Reset & Initialize command context
+      this._context = new AvailabilityContext(interaction);
+      this._generateEmbed(interaction);
+
       // Send Embedded message
       const channel = interaction.channel as TextChannel;
       this._context.message = await channel.send({ embeds: [this._context.embed] });
@@ -77,19 +56,19 @@ class AvailabilityCommand extends Command {
         for (const emoji of this._context.emojis) {
           await this._context.message?.react(emoji);
         }
+
+        await channel.send({
+          content: '@everyone',
+          allowedMentions: {
+            parse: ['everyone'],
+          },
+        });
       })()
 
       await this._context.message.startThread({
         name: 'Discussion publique',
         reason: 'Discussion liée à ce message',
       });
-
-      await channel.send({
-        content: '@everyone',
-        allowedMentions: {
-          parse: ['everyone'],
-        },
-      });;
 
       // Setup collector
       const collector = this._context.message.createReactionCollector({
@@ -106,9 +85,8 @@ class AvailabilityCommand extends Command {
       });
     } catch (error) {
       console.error("Erreur lors de la création du sondage :", error);
-      await interaction.followUp({
+      await interaction.editReply({
         content: "❌ Échec de création du sondage.",
-        flags: MessageFlags.Ephemeral,
       });
     }
   }
@@ -120,30 +98,12 @@ class AvailabilityCommand extends Command {
     await this._context.message?.edit({ embeds: [updated] });
   }
 
-  private _initializeSlotsAndEmojis() {
-    this._context.slots = []
-    this._context.emojis = []
-
-    let cursor = new Date(this._context.start);
-    let emojiIndex = 0;
-    while (cursor < this._context.end && emojiIndex < EMOJI_LETTER_LIST.length) {
-      const label = formatTime(cursor);
-      this._context.slots.push({ emoji: EMOJI_LETTER_LIST[emojiIndex], label: label });
-      this._context.emojis.push(EMOJI_LETTER_LIST[emojiIndex]);
-      cursor.setMinutes(cursor.getMinutes() + 30);
-      emojiIndex++;
-    }
-
-    this._context.slots.push({ emoji: EMOJI_LGBT_FLAG, label: "GAY" });
-    this._context.emojis.push(EMOJI_LGBT_FLAG);
-  }
-
-
-  private _generateDefaultEmbed(interaction: ChatInputCommandInteraction<CacheType>) {
-    return new EmbedBuilder()
+  private _generateEmbed(interaction: ChatInputCommandInteraction<CacheType>) {
+    this._context.embed = new EmbedBuilder()
       .setTitle(`📅 ${this._context.title}`)
       .setDescription(
-        `🧾 **Cliquez sur les réactions** pour indiquer vos disponibilités.\n\n🕒 Créneaux de **${formatTime(this._context.start)}** à **${formatTime(this._context.end)}**`
+        `\n🧾 **Cliquez sur les réactions** pour indiquer vos disponibilités.\n` +
+        `🕒 Créneaux de **${formatTime(this._context.start)}** à **${formatTime(this._context.end)}**`
       )
       .addFields(
         this._context.slots.map((slot) => ({
@@ -171,6 +131,39 @@ class AvailabilityCommand extends Command {
     } else {
       const updated = existing.filter(u => u !== user.displayName);
       this._context?.voters.set(emojiKey, updated);
+    }
+    
+    const channel = this._context.message?.channel as TextChannel
+    if (existing.length === 5) {
+      if (reaction.emoji.name === EMOJI_LGBT_FLAG) {
+        channel.send({
+          content: '# [NOTICE] Congrats! We have a full GAYYY squad! ' + EMOJI_LGBT_FLAG +
+            '\n\t' + existing.map(u => `• ${u}`).join("\n\t") +
+            '\n\n@everyone',
+          allowedMentions: {
+            parse: ['everyone'],
+          },
+        });
+      }
+      else {
+        channel.send({
+          content: '# [NOTICE] Congrats! We have a full squad! ' + EMOJI_BOMB +
+            '\n\t' + existing.map(u => `• ${u}`).join("\n\t") +
+            '\n\n@everyone',
+          allowedMentions: {
+            parse: ['everyone'],
+          },
+        });
+      }
+    } else if (existing.length >= 6) {
+      channel.send({
+        content: '# [NOTICE] ROULETTE! ' + EMOJI_ROULETTE +
+          '\n\t' + existing.map(u => `• ${u}`).join("\n\t") +
+          '\n\n@everyone',
+        allowedMentions: {
+          parse: ['everyone'],
+        },
+      });
     }
   }
 
