@@ -1,9 +1,9 @@
 import path from "path";
 import fs from "fs";
-import { Client, ClientEvents, ClientOptions, Collection, GatewayIntentBits, Partials, Snowflake } from "discord.js";
-import { fileURLToPath, pathToFileURL } from "url";
-import { Event } from "./event.js"
-import { Command } from "./command.js";
+import { Client, ClientOptions, Collection, GatewayIntentBits, Partials, Snowflake } from "discord.js";
+import { pathToFileURL } from "url";
+import AvailabilityCommand from "../../commands/availability.js";
+import env from "../../services/config.js";
 
 const options: ClientOptions = {
     intents: [
@@ -14,19 +14,19 @@ const options: ClientOptions = {
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 };
 
-class ExtendedClient extends Client {
+export class ExtendedClient extends Client {
     private _dirname: string = "";
 
     public commands: Collection<Snowflake, any> = new Collection();
 
-    public constructor() {
+    public constructor(dirname: string) {
         super(options);
-        this._dirname = path.dirname(fileURLToPath(import.meta.url))
-        console.log(this._dirname)
+
+        this._dirname = dirname;
     }
 
     private async _loadEvents(): Promise<void> {
-        const eventsPath = path.join(this._dirname, '..', "events");
+        const eventsPath = path.join(this._dirname, "events");
         const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
 
         for (const file of eventFiles) {
@@ -56,7 +56,7 @@ class ExtendedClient extends Client {
     }
 
     private async _loadCommands(): Promise<void> {
-        const commandsPath = path.join(this._dirname, '..', "commands");
+        const commandsPath = path.join(this._dirname, "commands");
         const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
 
         for (const file of commandFiles) {
@@ -84,7 +84,9 @@ class ExtendedClient extends Client {
     public async initialize(): Promise<void> {
         await this._loadEvents();
         await this._loadCommands();
+
+        await AvailabilityCommand.restoreContexts();
     }
 }
 
-export const client = new ExtendedClient();
+export const client = new ExtendedClient(env.dirname);

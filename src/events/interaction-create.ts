@@ -1,6 +1,6 @@
 import { Event } from "../models/event.js"
 import { BaseInteraction, Events, MessageFlags } from "discord.js";
-import { client } from "../models/extended-client.js";
+import { client } from "../models/extends/client.js";
 
 class InteractionCreateEvent extends Event<Events.InteractionCreate> {
     public constructor() {

@@ -2,12 +2,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { REST, Routes } from "discord.js";
 import fs from "node:fs";
 import path from "node:path";
-import { config } from "dotenv";
-import { Command } from "./models/command.js";
-
-// Load environment variables
-config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), 'env', ".env") });
-config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), 'env', `.env.${process.env.NODE_ENV}`) });
+import env from "./services/config.js";
 
 async function deploy(): Promise<void> {
   const commands = [];
@@ -32,7 +27,7 @@ async function deploy(): Promise<void> {
   }
 
   // Construct and prepare an instance of the REST module
-  const rest = new REST().setToken(process.env.DISCORD_TOKEN as string);
+  const rest = new REST().setToken(env.discord.token as string);
 
   // and deploy your commands!
   (async () => {
@@ -43,7 +38,7 @@ async function deploy(): Promise<void> {
 
       // The put method is used to fully refresh all commands in the guild with the current set
       const data: any = await rest.put(
-        Routes.applicationCommands(process.env.CLIENT_ID as string),
+        Routes.applicationCommands(env.discord.clientId as string),
         { body: commands }
       );
 
