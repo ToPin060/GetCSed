@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "\"Get CSed\" Discord application",
   "main": "dist/index.js",
-"scripts": {
-  "build": "tsc",
-  "prelaunch": "npm run build",
-  "launch": "node dist/index.js",
-  "predeploy": "npm run build",
-  "deploy": "node dist/deploy.js"
-},
+  "scripts": {
+    "build": "tsc",
+    "prelaunch": "npm run build",
+    "launch": "node dist/index.js",
+    "predeploy": "npm run build",
+    "deploy": "node dist/deploy.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ToPin060/GetCSed.git"
@@ -23,8 +23,11 @@
   },
   "homepage": "https://github.com/ToPin060/GetCSed#readme",
   "dependencies": {
+    "@types/globaloffensive": "^2.3.4",
+    "@types/steam-user": "^5.1.0",
     "discord.js": "^14.21.0",
-    "dotenv": "^17.2.0"
+    "dotenv": "^17.2.0",
+    "globaloffensive": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
