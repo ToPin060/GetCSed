@@ -16,7 +16,7 @@ import { Command } from "../models/command.js";
 import { Slot } from "../models/interfaces/slots.js";
 import { Context, generateContext, generateEmbed, toContext, toJson } from "../models/context.js";
 import { EMOJI_BOMB, EMOJI_LGBT_FLAG, EMOJI_ROULETTE } from "../utils/emoji.js";
-import { availabilitiesId, db } from "../services/firestore.js";
+import { availabilitiesId, db } from "../services/database.js";
 import { client } from "../models/extends/client.js";
 
 /**

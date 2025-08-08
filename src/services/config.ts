@@ -8,7 +8,7 @@ const dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 config({ path: path.join(dirname, '..', 'env', ".env") });
 config({ path: path.join(dirname, '..', 'env', `.env.${process.env.NODE_ENV}`) });
 
-const env: Environment = {
+const environment: Environment = {
     dirname: dirname,
     nodeEnv: process.env.NODE_ENV as string,
     discord: {
@@ -20,4 +20,4 @@ const env: Environment = {
     } as GoogleEnvironment,
 };
 
-export default env;
+export default environment;

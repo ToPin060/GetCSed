@@ -3,7 +3,8 @@ import fs from "fs";
 import { Client, ClientOptions, Collection, GatewayIntentBits, Partials, Snowflake } from "discord.js";
 import { pathToFileURL } from "url";
 import AvailabilityCommand from "../../commands/availability.js";
-import env from "../../services/config.js";
+import environment from "../../services/config.js";
+import SteamIdCommand from "../../commands/steam-id.js";
 
 const options: ClientOptions = {
     intents: [
@@ -86,7 +87,8 @@ export class ExtendedClient extends Client {
         await this._loadCommands();
 
         await AvailabilityCommand.restoreContexts();
+        await SteamIdCommand.restoreRanks();
     }
 }
 
-export const client = new ExtendedClient(env.dirname);
+export const client = new ExtendedClient(environment.dirname);
