@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer-core";
+
 import { CSRank } from "../models/cs-rank.js";
 import environment from "./config.js";
 
@@ -7,7 +8,9 @@ export async function scrapeCSStats(discordUserId: string, steamId64: string): P
   if (environment.nodeEnv == "prod") {
     browser = await puppeteer.connect({ browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT });
   } else {
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+      executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    });
   }
 
   const page = await browser.newPage();
@@ -26,7 +29,6 @@ export async function scrapeCSStats(discordUserId: string, steamId64: string): P
       const rating = rankEl.querySelector('.rank span')?.textContent?.trim() || '';
       const best = rankEl.querySelector('.best span')?.textContent?.trim() || '';
       const wins = rankEl.querySelector('.bottom .wins b')?.textContent?.trim() || '';
-      const date = rankEl.querySelector('.bottom .date span')?.textContent?.trim() || '';
 
       return {
         type,
@@ -34,7 +36,6 @@ export async function scrapeCSStats(discordUserId: string, steamId64: string): P
         rating,
         best,
         wins,
-        date,
       };
     });
   });
@@ -44,6 +45,7 @@ export async function scrapeCSStats(discordUserId: string, steamId64: string): P
   return {
     discordUserId: discordUserId,
     steamId: steamId64,
+    date: new Date(),
     ...ranks[0]
   }
 }

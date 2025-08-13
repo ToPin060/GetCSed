@@ -6,12 +6,14 @@ export interface CSRank {
   rating: string,
   best: string,
   wins: string,
-  date: string,
+  date: Date,
 }
 
 export function toJson(csrank: CSRank): any {
-  const { ...rest } = csrank;
-  return { ...rest }
+  const { date, ...rest } = csrank;
+  return { ...rest,
+    date: date.toDateString()
+  }
 }
 
 export function toCSRank(json: any): CSRank {
@@ -23,6 +25,6 @@ export function toCSRank(json: any): CSRank {
     rating: json.rating,
     best: json.best,
     wins: json.wins,
-    date: json.date,
+    date: new Date(json.date),
   }
 }

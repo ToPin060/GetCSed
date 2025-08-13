@@ -3,6 +3,11 @@ import { Slot } from "./interfaces/slots.js";
 import { EMOJI_LETTER_LIST, EMOJI_LGBT_FLAG } from "../utils/emoji.js";
 import { formatTime, parseTime } from "../utils/format.js";
 
+export interface UserInfo {
+    id: string,
+    name: string,
+}
+
 export interface Context {
     guildId: string,
     channelId: string,
@@ -13,7 +18,7 @@ export interface Context {
     end: Date,
     slots: Slot[],
     emojis: string[],
-    voters: Collection<string, Snowflake[]>,
+    voters: Collection<string, UserInfo[]>,
     embed: any,
     displayName: string,
     displayAvatarURL: string
@@ -31,10 +36,10 @@ export function generateContext(interaction: ChatInputCommandInteraction<CacheTy
         end: parseTime(interaction.options.getString("end") || "23:00"),
         slots: [],
         emojis: [],
-        voters: new Collection<string, string[]>(),
+        voters: new Collection<string, UserInfo[]>(),
         embed: null,
         displayName: interaction.user.displayName,
-        displayAvatarURL: interaction.user.displayAvatarURL()
+        displayAvatarURL: interaction.user.displayAvatarURL(),
     };
 
     // Emojis & slots
@@ -73,18 +78,21 @@ export function generateEmbed(context: Context): any {
             text: `Créé par ${context.displayName}`,
             iconURL: context.displayAvatarURL,
         })
+        .setColor("Green")
         .setTimestamp();
 }
+
+// Serialization
 export function toJson(context: Context): any {
-    const { message, embed, ...rest } = context;
+    const { message, embed, voters, ...rest } = context;
     return {
         ...rest,
         start: rest.start.toISOString(),
         end: rest.end.toISOString(),
-        voters: Object.fromEntries(rest.voters.map(([emoji, userIds]) => [emoji, userIds]))
     };
 }
 
+// Deserialization
 export function toContext(json: any): Context {
     return {
         guildId: json.guildId,
@@ -95,7 +103,7 @@ export function toContext(json: any): Context {
         end: new Date(json.end),
         slots: json.slots as Slot[],
         emojis: json.emojis,
-        voters: new Collection<string, Snowflake[]>(Object.entries(json.voters)),
+        voters: new Collection<string, UserInfo[]>(),
         embed: json.embed,
         displayName: json.displayName,
         displayAvatarURL: json.displayAvatarURL

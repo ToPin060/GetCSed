@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { Client, ClientOptions, Collection, GatewayIntentBits, Partials, Snowflake } from "discord.js";
 import { pathToFileURL } from "url";
-import AvailabilityCommand from "../../commands/availability.js";
+import AvailabilityCommand from "../../commands/pool.js";
 import environment from "../../services/config.js";
 import SteamIdCommand from "../../commands/steam-id.js";
 

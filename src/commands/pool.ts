@@ -14,17 +14,19 @@ import {
 } from "discord.js";
 import { Command } from "../models/command.js";
 import { Slot } from "../models/interfaces/slots.js";
-import { Context, generateContext, generateEmbed, toContext, toJson } from "../models/context.js";
+import { Context, generateContext, generateEmbed, toContext, toJson, UserInfo } from "../models/context.js";
 import { EMOJI_BOMB, EMOJI_LGBT_FLAG, EMOJI_ROULETTE } from "../utils/emoji.js";
 import { availabilitiesId, db } from "../services/database.js";
 import { client } from "../models/extends/client.js";
+import SteamIdCommand, { saveCSRank, updateCSRank } from "./steam-id.js";
+import { isMoreThanOneDayOld } from "../utils/date.js";
 
 /**
  * Command description
  */
 const data = (new SlashCommandBuilder()
-  .setName("availability")
-  .setDescription("Create a time slot poll for availability")
+  .setName("pool")
+  .setDescription("Create a time slot poll")
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
   .addStringOption((opt) =>
     opt.setName("title").setDescription("Title of the poll").setRequired(true)
@@ -162,35 +164,23 @@ async function updateVoters(context: Context, reaction: MessageReaction, user: U
   const emojiKey = reaction.emoji.name!;
   const existing = context.voters.get(emojiKey) || [];
 
+  const currentUserInfo: UserInfo = {id: user.id, name: user.displayName};
+
   if (isCollect) {
-    if (!existing.includes(user.displayName)) {
-      existing.push(user.displayName);
+    if (!existing.includes(currentUserInfo)) {
+      // Update rank if too old (1day)
+      const csrank = SteamIdCommand.ranks.get(user.id)
+      if (csrank && isMoreThanOneDayOld(csrank.date)) {
+        updateCSRank(user.id, csrank.steamId);
+        saveCSRank(csrank);
+      }
+
+      existing.push(currentUserInfo);
     }
     context.voters.set(emojiKey, existing);
   } else {
-    const updated = existing.filter(u => u !== user.displayName);
+    const updated = existing.filter(u => u.name !== user.displayName);
     context.voters.set(emojiKey, updated);
-  }
-
-  const channel = context.message?.channel as TextChannel
-  if (existing.length === 5) {
-    if (reaction.emoji.name === EMOJI_LGBT_FLAG) {
-      channel.send({
-        content: '# [NOTICE] Congrats! We have a full GAYYY squad! ' + EMOJI_LGBT_FLAG +
-          '\n\t' + existing.map(u => `• ${u}`).join("\n\t"),
-      });
-    }
-    else {
-      channel.send({
-        content: '# [NOTICE] Congrats! We have a full squad! ' + EMOJI_BOMB +
-          '\n\t' + existing.map(u => `• ${u}`).join("\n\t"),
-      });
-    }
-  } else if (existing.length >= 6) {
-    channel.send({
-      content: '# [NOTICE] ROULETTE! ' + EMOJI_ROULETTE +
-        '\n\t' + existing.map(u => `• ${u}`).join("\n\t"),
-    });
   }
 }
 
@@ -199,7 +189,7 @@ function updateEmbed(context: Context) {
     const userNames = context.voters.get(slot.emoji) || [];
     return {
       name: `${slot.emoji} ${slot.label} - ${userNames.length} vote(s)`,
-      value: userNames.length > 0 ? userNames.map(u => `• ${u}`).join("\n") : "—",
+      value: '\n' + (userNames.length > 0 ? userNames.map(u => `• ${u.name} *[${SteamIdCommand.ranks.get(u.id)?.rating}]*`).join("\n") : "—"),
     };
   });
 }
